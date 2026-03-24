@@ -4,21 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6939f322-e996-4520-9491-b987f7ea2948" name="Changes" comment="second commit">
-      <change afterPath="$PROJECT_DIR$/.env" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.env.example" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/clients/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/clients/kaiten_client.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/clients/onec_client.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/config/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/config/settings.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/services/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/services/sync_service.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/state/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/state/sync_state.py" afterDir="false" />
+    <list default="true" id="6939f322-e996-4520-9491-b987f7ea2948" name="Changes" comment="working frame">
+      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/clients/kaiten_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/clients/kaiten_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/clients/onec_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/clients/onec_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/config/settings.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/sync_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/sync_service.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -89,7 +82,7 @@
       <option name="presentableId" value="Default" />
       <updated>1774274859344</updated>
       <workItem from="1774274860840" duration="956000" />
-      <workItem from="1774354443508" duration="2113000" />
+      <workItem from="1774354443508" duration="14927000" />
     </task>
     <task id="LOCAL-00001" summary="first commit">
       <option name="closed" value="true" />
@@ -107,7 +100,15 @@
       <option name="project" value="LOCAL" />
       <updated>1774275218296</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="working frame">
+      <option name="closed" value="true" />
+      <created>1774357669003</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1774357669003</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -116,6 +117,7 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="first commit" />
     <MESSAGE value="second commit" />
-    <option name="LAST_COMMIT_MESSAGE" value="second commit" />
+    <MESSAGE value="working frame" />
+    <option name="LAST_COMMIT_MESSAGE" value="working frame" />
   </component>
 </project>
