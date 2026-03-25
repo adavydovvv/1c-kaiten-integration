@@ -53,6 +53,7 @@ class OneCClient:
         kaiten_card_url: str,
         uuid: str = "",
         title: str = "",
+        actual_hours: float = 0,
     ):
         payload = {
             "kaiten_id": kaiten_id,
@@ -60,6 +61,7 @@ class OneCClient:
             "kaiten_card_url": kaiten_card_url,
             "uuid": uuid,
             "title": title,
+            "actual_hours": actual_hours,
         }
         response = self.session.post(
             f"{self.base_url}/tasks/from-kaiten",

@@ -77,6 +77,9 @@ class KaitenClient:
     def get_spaces(self):
         return self.get("/spaces")
 
+    def get_board(self, space_id: int, board_id: int):
+        return self.get(f"/spaces/{space_id}/boards/{board_id}")
+
     def get_board_columns(self, board_id: int):
         return self.get(f"/boards/{board_id}/columns")
 
@@ -90,13 +93,30 @@ class KaitenClient:
         boards = []
 
         for space in spaces:
+            space_id = space.get("id")
+
             for board in space.get("boards", []) or []:
                 board_id = board.get("id")
-                if not board_id:
+                if not board_id or not space_id:
                     continue
 
                 time.sleep(0.4)
-                columns = self.get_board_columns(int(board_id)) or []
+
+                board_details = {}
+                try:
+                    board_details = self.get_board(int(space_id), int(board_id)) or {}
+                except Exception as exc:
+                    print(f"Не удалось получить board details для board_id={board_id}: {exc}")
+
+                columns = board_details.get("columns") or board.get("columns") or []
+                lanes = board_details.get("lanes") or board.get("lanes") or []
+
+                if not columns:
+                    try:
+                        columns = self.get_board_columns(int(board_id)) or []
+                    except Exception as exc:
+                        print(f"Не удалось получить columns для board_id={board_id}: {exc}")
+                        columns = []
 
                 boards.append({
                     "space_id": space.get("id"),
@@ -104,7 +124,7 @@ class KaitenClient:
                     "board_id": board.get("id"),
                     "board_title": board.get("title", ""),
                     "board_external_id": board.get("external_id"),
-                    "lanes": board.get("lanes", []) or [],
+                    "lanes": lanes,
                     "columns": columns,
                 })
 
