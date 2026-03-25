@@ -1,0 +1,9 @@
+{
+  "onec_base_url": "http://localhost/ERP/hs/kaiten",
+  "onec_username": "Admin",
+  "onec_password": "",
+  "py_service_host": "127.0.0.1",
+  "py_service_port": 8088,
+  "state_file": "state/last_sync.json",
+  "log_level": "INFO"
+}

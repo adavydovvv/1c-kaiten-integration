@@ -1,10 +1,11 @@
 import json
 import re
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
 from clients.onec_client import OneCClient
 from clients.kaiten_client import KaitenClient
-from config.settings import load_settings
+from config.config_loader import load_local_config
 from state.sync_state import SyncState
 
 
@@ -650,19 +651,57 @@ def merge_property_maps(current_map: dict | None, detected_map: dict) -> dict:
     }
 
 
-def auto_fill_service_settings():
-    settings = load_settings()
+def build_kaiten_site_url(api_base_url: str) -> str:
+    base = normalize_text(api_base_url).rstrip("/")
+    if base.endswith("/api/latest"):
+        return base[:-11]
+    if base.endswith("/api"):
+        return base[:-4]
+    return base
+
+
+def build_runtime_context():
+    local_config = load_local_config()
 
     onec = OneCClient(
-        base_url=settings.onec_base_url,
-        username=settings.onec_username,
-        password=settings.onec_password,
+        base_url=local_config.onec_base_url,
+        username=local_config.onec_username,
+        password=local_config.onec_password,
     )
 
+    global_settings = onec.get_global_settings() or {}
+
+    enabled = bool(global_settings.get("enabled", True))
+    kaiten_base_url = normalize_text(global_settings.get("kaiten_base_url"))
+    kaiten_token = normalize_text(global_settings.get("kaiten_token"))
+
+    if not enabled:
+        raise ValueError("Интеграция Kaiten отключена в 1С")
+
+    if not kaiten_base_url:
+        raise ValueError("В 1С не заполнен KaitenBaseUrl")
+
+    if not kaiten_token:
+        raise ValueError("В 1С не заполнен KaitenToken")
+
     kaiten = KaitenClient(
-        base_url=settings.kaiten_base_url,
-        token=settings.kaiten_token,
+        base_url=kaiten_base_url,
+        token=kaiten_token,
     )
+
+    runtime_settings = SimpleNamespace(
+        kaiten_base_url=kaiten_base_url,
+        kaiten_site_url=build_kaiten_site_url(kaiten_base_url),
+        state_file=local_config.state_file,
+        log_level=local_config.log_level,
+        python_service_url=normalize_text(global_settings.get("python_service_url")),
+    )
+
+    return runtime_settings, onec, kaiten
+
+
+def auto_fill_service_settings():
+    settings, onec, kaiten = build_runtime_context()
 
     service_settings = onec.get_service_settings() or []
     print("service_settings:", service_settings)
@@ -718,13 +757,7 @@ def auto_fill_service_settings():
 
 
 def dump_kaiten_metadata():
-    settings = load_settings()
-
-    kaiten = KaitenClient(
-        base_url=settings.kaiten_base_url,
-        token=settings.kaiten_token,
-    )
-
+    settings, _, kaiten = build_runtime_context()
     metadata = kaiten.get_metadata_catalog()
 
     with open("kaiten_metadata.json", "w", encoding="utf-8") as f:
@@ -738,18 +771,7 @@ def dump_kaiten_metadata():
 
 
 def run_full_sync():
-    settings = load_settings()
-
-    onec = OneCClient(
-        base_url=settings.onec_base_url,
-        username=settings.onec_username,
-        password=settings.onec_password,
-    )
-
-    kaiten = KaitenClient(
-        base_url=settings.kaiten_base_url,
-        token=settings.kaiten_token,
-    )
+    settings, onec, kaiten = build_runtime_context()
 
     state = SyncState(settings.state_file)
     service_settings = get_active_service_settings(onec)

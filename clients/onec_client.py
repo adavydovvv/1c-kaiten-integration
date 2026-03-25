@@ -84,3 +84,10 @@ class OneCClient:
             timeout=self.timeout
         )
         return self._handle_response(response)
+
+    def get_global_settings(self):
+        response = self.session.get(
+            f"{self.base_url}/settings/global",
+            timeout=self.timeout
+        )
+        return self._handle_response(response)
