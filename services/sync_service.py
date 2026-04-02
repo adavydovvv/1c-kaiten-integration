@@ -771,6 +771,7 @@ def dump_kaiten_metadata():
 
 
 def run_full_sync():
+    auto_fill_service_settings()
     settings, onec, kaiten = build_runtime_context()
 
     state = SyncState(settings.state_file)
