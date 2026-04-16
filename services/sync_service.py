@@ -77,7 +77,7 @@ def build_description(task: dict) -> str:
     uuid_value = normalize_text(task.get("uuid"))
     description = normalize_text(task.get("description"))
 
-    service = normalize_text(task.get("service")) or "Не указан"
+    project = normalize_text(task.get("project")) or "Не указан"
     assignee = normalize_text(task.get("assignee")) or "Не указан"
     status = normalize_text(task.get("status")) or "Не указан"
     priority = normalize_text(task.get("priority")) or "Не указан"
@@ -94,7 +94,7 @@ def build_description(task: dict) -> str:
 
     parts.extend([
         f"1C UUID: {uuid_value}",
-        f"Сервис: {service}",
+        f"Проект: {project}",
         f"Исполнитель: {assignee}",
         f"Статус 1С: {status}",
         f"Приоритет: {priority}",
@@ -122,8 +122,8 @@ def extract_uuid_from_description(description: str) -> str:
     return ""
 
 
-def get_active_service_settings(onec: OneCClient) -> list:
-    items = onec.get_service_settings() or []
+def get_active_project_settings(onec: OneCClient) -> list:
+    items = onec.get_project_settings() or []
 
     result = []
     for item in items:
@@ -134,10 +134,10 @@ def get_active_service_settings(onec: OneCClient) -> list:
     return result
 
 
-def get_active_board_ids(service_settings: list) -> set[int]:
+def get_active_board_ids(project_settings: list) -> set[int]:
     result = set()
 
-    for item in service_settings:
+    for item in project_settings:
         board_id = to_int(item.get("board_id", 0))
         if board_id > 0:
             result.add(board_id)
@@ -145,18 +145,18 @@ def get_active_board_ids(service_settings: list) -> set[int]:
     return result
 
 
-def find_service_setting_for_task(task: dict, service_settings: list) -> dict | None:
-    task_service_ref = normalize_text(task.get("service_ref"))
-    task_service_name = normalize_name(task.get("service"))
+def find_project_setting_for_task(task: dict, project_settings: list) -> dict | None:
+    task_project_ref = normalize_text(task.get("project_ref"))
+    task_project_name = normalize_name(task.get("project"))
 
-    if task_service_ref:
-        for item in service_settings:
-            if normalize_text(item.get("service_ref")) == task_service_ref:
+    if task_project_ref:
+        for item in project_settings:
+            if normalize_text(item.get("project_ref")) == task_project_ref:
                 return item
 
-    if task_service_name:
-        for item in service_settings:
-            if normalize_name(item.get("service_name")) == task_service_name:
+    if task_project_name:
+        for item in project_settings:
+            if normalize_name(item.get("project_name")) == task_project_name:
                 return item
 
     return None
@@ -195,7 +195,7 @@ def build_lane_map(lanes: list) -> dict:
     }
 
 
-def enrich_service_settings_with_metadata(service_settings: list, metadata: dict):
+def enrich_project_settings_with_metadata(project_settings: list, metadata: dict):
     boards_by_id = {}
 
     for board in metadata.get("boards", []):
@@ -203,7 +203,7 @@ def enrich_service_settings_with_metadata(service_settings: list, metadata: dict
         if board_id > 0:
             boards_by_id[board_id] = board
 
-    for item in service_settings:
+    for item in project_settings:
         board_id = to_int(item.get("board_id", 0))
         matched_board = boards_by_id.get(board_id)
 
@@ -215,10 +215,10 @@ def enrich_service_settings_with_metadata(service_settings: list, metadata: dict
         item["lanes"] = build_lane_map(lanes)
 
 
-def resolve_column_id(task: dict, service_setting: dict) -> int:
+def resolve_column_id(task: dict, project_setting: dict) -> int:
     status_raw = normalize_text(task.get("status"))
     status = normalize_name(status_raw)
-    columns = service_setting.get("columns") or {}
+    columns = project_setting.get("columns") or {}
 
     queue_id = to_int(columns.get("queue", 0))
     in_progress_id = to_int(columns.get("in_progress", 0))
@@ -249,13 +249,13 @@ def resolve_column_id(task: dict, service_setting: dict) -> int:
         if value:
             return value
 
-    raise ValueError("Не удалось определить column_id для сервиса")
+    raise ValueError("Не удалось определить column_id для проекта")
 
 
-def resolve_lane_id(task: dict, service_setting: dict) -> int:
+def resolve_lane_id(task: dict, project_setting: dict) -> int:
     priority_raw = normalize_text(task.get("priority"))
     priority = normalize_name(priority_raw)
-    lanes = service_setting.get("lanes") or {}
+    lanes = project_setting.get("lanes") or {}
 
     low_id = to_int(lanes.get("low", 0))
     medium_id = to_int(lanes.get("medium", 0))
@@ -274,29 +274,53 @@ def resolve_lane_id(task: dict, service_setting: dict) -> int:
     if priority in {"критический", "critical"} and critical_id:
         return critical_id
 
-    fallback_lane_id = to_int(service_setting.get("lane_id", 0))
+    fallback_lane_id = to_int(project_setting.get("lane_id", 0))
     return fallback_lane_id if fallback_lane_id > 0 else 0
 
 
-def build_kaiten_payload(task: dict, service_setting: dict) -> dict:
-    board_id = to_int(service_setting.get("board_id", 0))
+def build_user_map(kaiten: KaitenClient) -> dict:
+    users = kaiten.get_users() or []
+    user_map = {}
+
+    print("\n--- Загруженные пользователи Kaiten ---")
+    for u in users:
+        raw_name = u.get("full_name", "") or u.get("username", "") or u.get("email", "")
+        name = normalize_name(raw_name)
+        if name:
+            user_map[name] = u.get("id")
+            print(f"ID: [{u.get('id')}] | Kaiten Name: '{raw_name}' -> Для поиска: '{name}'")
+    print("---------------------------------------\n")
+
+    return user_map
+
+
+def build_kaiten_payload(task: dict, project_setting: dict, user_map: dict = None) -> dict:
+    board_id = to_int(project_setting.get("board_id", 0))
 
     if board_id <= 0:
-        raise ValueError("Для сервиса не настроен board_id")
+        raise ValueError("Для проекта не настроен board_id")
 
     payload = {
         "title": build_title(task),
         "description": build_description(task),
         "board_id": board_id,
-        "column_id": resolve_column_id(task, service_setting),
+        "column_id": resolve_column_id(task, project_setting),
         "planned_start": normalize_text(task.get("start_date")) or None,
         "planned_end": normalize_text(task.get("end_date")) or None,
         "estimate_workload": task.get("planned_hours", 0) or 0,
+        "archived": False,
     }
 
-    lane_id = resolve_lane_id(task, service_setting)
+    lane_id = resolve_lane_id(task, project_setting)
     if lane_id > 0:
         payload["lane_id"] = lane_id
+
+    if user_map is not None:
+        owner_name = normalize_name(task.get("owner", ""))
+
+        # Передаем ТОЛЬКО Владельца. Исполнителей добавим отдельным API запросом.
+        if owner_name and owner_name in user_map:
+            payload["owner_id"] = user_map[owner_name]
 
     if payload["planned_start"] is None:
         payload.pop("planned_start")
@@ -385,10 +409,10 @@ def is_kaiten_missing_or_forbidden_error(exc: Exception) -> bool:
 
 
 def upsert_card_with_recreate(
-    kaiten: KaitenClient,
-    task: dict,
-    payload: dict,
-    existing_card: dict | None,
+        kaiten: KaitenClient,
+        task: dict,
+        payload: dict,
+        existing_card: dict | None,
 ):
     uuid_value = normalize_text(task.get("uuid"))
     kaiten_id = normalize_text(task.get("kaiten_id"))
@@ -428,13 +452,15 @@ def upsert_card_with_recreate(
     return card, str(card["id"])
 
 
-def export_1c_to_kaiten(onec: OneCClient, kaiten: KaitenClient, settings, service_settings: list):
+def export_1c_to_kaiten(onec: OneCClient, kaiten: KaitenClient, settings, project_settings: list):
     tasks = onec.get_changed_tasks() or []
     print(f"Получено задач из 1С: {len(tasks)}")
 
-    allowed_board_ids = get_active_board_ids(service_settings)
+    allowed_board_ids = get_active_board_ids(project_settings)
     all_cards = kaiten.get_cards() or []
     existing_cards_by_uuid = build_existing_card_map(all_cards, allowed_board_ids)
+
+    user_map = build_user_map(kaiten)
 
     seen_uuids = set()
     created_or_updated = 0
@@ -452,27 +478,58 @@ def export_1c_to_kaiten(onec: OneCClient, kaiten: KaitenClient, settings, servic
 
         seen_uuids.add(uuid_value)
 
+        is_deleted = task.get("is_deleted", False)
+        if is_deleted:
+            existing_card = existing_cards_by_uuid.get(uuid_value)
+            kaiten_id_to_delete = normalize_text(task.get("kaiten_id"))
+
+            if not kaiten_id_to_delete and existing_card:
+                kaiten_id_to_delete = str(existing_card.get("id"))
+
+            if kaiten_id_to_delete:
+                try:
+                    kaiten.delete_card(to_int(kaiten_id_to_delete))
+                    print(f"Карточка {kaiten_id_to_delete} удалена в Kaiten (пометка удаления в 1С)")
+                except Exception as exc:
+                    exc_str = str(exc)
+                    if "logged time not allowed" in exc_str:
+                        project_setting = find_project_setting_for_task(task, project_settings)
+                        if project_setting:
+                            canceled_col = to_int(project_setting.get("columns", {}).get("canceled", 0))
+                            if canceled_col > 0:
+                                print(
+                                    f"Карточка {kaiten_id_to_delete} содержит списанное время. Перемещаем в 'Отменено'.")
+                                try:
+                                    kaiten.update_card(to_int(kaiten_id_to_delete), {"column_id": canceled_col})
+                                except Exception as move_exc:
+                                    print(f"Ошибка перемещения: {move_exc}")
+                    elif not is_kaiten_missing_or_forbidden_error(exc):
+                        print(f"Ошибка при удалении карточки {kaiten_id_to_delete}: {exc}")
+
+            onec.update_task_sync_fields(
+                uuid=uuid_value,
+                kaiten_id="",
+                external_status="",
+                kaiten_card_url=""
+            )
+            created_or_updated += 1
+            continue
+
         try:
-            service_setting = find_service_setting_for_task(task, service_settings)
-            if not service_setting:
+            project_setting = find_project_setting_for_task(task, project_settings)
+            if not project_setting:
                 errors += 1
-                print(f"Не найдены настройки Kaiten для сервиса '{normalize_text(task.get('service'))}'")
+                print(f"Не найдены настройки Kaiten для проекта '{normalize_text(task.get('project'))}'")
                 continue
 
-            payload = build_kaiten_payload(task, service_setting)
+            payload = build_kaiten_payload(task, project_setting, user_map)
             existing_card = existing_cards_by_uuid.get(uuid_value)
 
             print(
                 f"Экспорт UUID={uuid_value}, "
-                f"service={normalize_text(task.get('service'))}, "
+                f"project={normalize_text(task.get('project'))}, "
                 f"status={normalize_text(task.get('status'))}, "
-                f"priority={normalize_text(task.get('priority'))}, "
-                f"board_id={payload['board_id']}, "
-                f"column_id={payload['column_id']}, "
-                f"lane_id={payload.get('lane_id')}, "
-                f"planned_start={payload.get('planned_start')}, "
-                f"planned_end={payload.get('planned_end')}, "
-                f"estimate_workload={payload.get('estimate_workload')}"
+                f"owner_id={payload.get('owner_id')}"
             )
 
             card, final_kaiten_id = upsert_card_with_recreate(
@@ -482,12 +539,31 @@ def export_1c_to_kaiten(onec: OneCClient, kaiten: KaitenClient, settings, servic
                 existing_card=existing_card,
             )
 
+            # --- ДОБАВЛЕНИЕ УЧАСТНИКОВ НАПРЯМУЮ ---
+            if user_map is not None:
+                assignee_name = normalize_name(task.get("assignee", ""))
+                if assignee_name and assignee_name in user_map:
+                    user_id = user_map[assignee_name]
+
+                    # Проверяем текущих участников, чтобы не вызывать ошибку добавления дубликата
+                    current_members = card.get("members", []) or []
+                    current_member_ids = [m.get("id") for m in current_members if isinstance(m, dict)]
+
+                    if user_id not in current_member_ids:
+                        try:
+                            # Прямой вызов API: добавить участника в карточку
+                            kaiten.post(f"/cards/{final_kaiten_id}/members", {"user_id": user_id})
+                            print(f"В карточку {final_kaiten_id} успешно назначен Исполнитель: {assignee_name}")
+                        except Exception as member_exc:
+                            print(f"Не удалось добавить Исполнителя {assignee_name}: {member_exc}")
+            # --------------------------------------
+
             existing_cards_by_uuid[uuid_value] = card
 
             card_url = f"{settings.kaiten_site_url}/card/{final_kaiten_id}"
             external_status = (
-                normalize_text((card.get("column") or {}).get("title"))
-                or normalize_text(task.get("status"))
+                    normalize_text((card.get("column") or {}).get("title"))
+                    or normalize_text(task.get("status"))
             )
 
             onec.update_task_sync_fields(
@@ -507,9 +583,9 @@ def export_1c_to_kaiten(onec: OneCClient, kaiten: KaitenClient, settings, servic
     print(f"Экспорт завершён: успешно={created_or_updated}, ошибок={errors}")
 
 
-def import_kaiten_to_1c(onec: OneCClient, kaiten: KaitenClient, settings, service_settings: list):
+def import_kaiten_to_1c(onec: OneCClient, kaiten: KaitenClient, settings, project_settings: list):
     cards = kaiten.get_cards() or []
-    allowed_board_ids = get_active_board_ids(service_settings)
+    allowed_board_ids = get_active_board_ids(project_settings)
     cards_to_process = build_cards_for_import(cards, allowed_board_ids)
 
     processed = 0
@@ -541,6 +617,10 @@ def import_kaiten_to_1c(onec: OneCClient, kaiten: KaitenClient, settings, servic
 
             column = card.get("column") or {}
             external_status = normalize_text(column.get("title")) or str(card.get("column_id", ""))
+
+            lane = card.get("lane") or {}
+            external_priority = normalize_text(lane.get("title"))
+
             card_url = f"{settings.kaiten_site_url}/card/{kaiten_id}"
             uuid_value = extract_uuid_from_description(card.get("description", ""))
             title = normalize_text(card.get("title"))
@@ -549,6 +629,7 @@ def import_kaiten_to_1c(onec: OneCClient, kaiten: KaitenClient, settings, servic
             result = onec.apply_from_kaiten(
                 kaiten_id=kaiten_id,
                 external_status=external_status,
+                external_priority=external_priority,
                 kaiten_card_url=card_url,
                 uuid=uuid_value,
                 title=title,
@@ -570,8 +651,8 @@ def import_kaiten_to_1c(onec: OneCClient, kaiten: KaitenClient, settings, servic
     print(f"Импорт завершён: обновлено={processed}, пропущено={ignored}, ошибок={errors}")
 
 
-def find_board_for_service(metadata: dict, service_name: str) -> dict | None:
-    target = normalize_name(service_name)
+def find_board_for_project(metadata: dict, project_name: str) -> dict | None:
+    target = normalize_name(project_name)
 
     exact_space_matches = []
     exact_board_matches = []
@@ -610,7 +691,7 @@ def build_property_map(properties: list) -> dict:
         "priority": 0,
         "plan_hours": 0,
         "fact_hours": 0,
-        "service": 0,
+        "project": 0,
         "start_date": 0,
         "end_date": 0,
     }
@@ -628,8 +709,8 @@ def build_property_map(properties: list) -> dict:
             result["plan_hours"] = prop_id
         elif title in {"факт,ч", "факт", "actualhours", "facthours"}:
             result["fact_hours"] = prop_id
-        elif title in {"itсервис", "итсервис", "сервис", "service"}:
-            result["service"] = prop_id
+        elif title in {"itпроект", "итпроект", "проект", "project", "itсервис", "итсервис", "сервис"}:
+            result["project"] = prop_id
         elif title in {"датаначала", "startdate", "plannedstart"}:
             result["start_date"] = prop_id
         elif title in {"датаокончания", "срок", "enddate", "duedate"}:
@@ -645,7 +726,7 @@ def merge_property_maps(current_map: dict | None, detected_map: dict) -> dict:
         "priority": to_int(current_map.get("priority", 0) or detected_map.get("priority", 0) or 0),
         "plan_hours": to_int(current_map.get("plan_hours", 0) or detected_map.get("plan_hours", 0) or 0),
         "fact_hours": to_int(current_map.get("fact_hours", 0) or detected_map.get("fact_hours", 0) or 0),
-        "service": to_int(current_map.get("service", 0) or detected_map.get("service", 0) or 0),
+        "project": to_int(current_map.get("project", 0) or detected_map.get("project", 0) or 0),
         "start_date": to_int(current_map.get("start_date", 0) or detected_map.get("start_date", 0) or 0),
         "end_date": to_int(current_map.get("end_date", 0) or detected_map.get("end_date", 0) or 0),
     }
@@ -700,29 +781,29 @@ def build_runtime_context():
     return runtime_settings, onec, kaiten
 
 
-def auto_fill_service_settings():
+def auto_fill_project_settings():
     settings, onec, kaiten = build_runtime_context()
 
-    service_settings = onec.get_service_settings() or []
-    print("service_settings:", service_settings)
-    print("service_settings count:", len(service_settings))
+    project_settings = onec.get_project_settings() or []
+    print("project_settings:", project_settings)
+    print("project_settings count:", len(project_settings))
 
     metadata = kaiten.get_metadata_catalog()
     detected_property_map = build_property_map(metadata.get("properties", []))
 
     updated_settings = []
 
-    for item in service_settings:
-        service_name = normalize_text(item.get("service_name"))
-        service_ref = normalize_text(item.get("service_ref"))
+    for item in project_settings:
+        project_name = normalize_text(item.get("project_name"))
+        project_ref = normalize_text(item.get("project_ref"))
 
-        if not service_ref or not service_name:
+        if not project_ref or not project_name:
             continue
 
-        matched_board = find_board_for_service(metadata, service_name)
+        matched_board = find_board_for_project(metadata, project_name)
 
         if not matched_board:
-            print(f"Не найдена доска Kaiten для сервиса: {service_name}")
+            print(f"Не найдена доска Kaiten для проекта: {project_name}")
             updated_settings.append(item)
             continue
 
@@ -746,14 +827,14 @@ def auto_fill_service_settings():
         updated_settings.append(item)
 
         print(
-            f"Сервис '{service_name}' -> доска "
+            f"Проект '{project_name}' -> доска "
             f"{matched_board.get('space_title')} / {matched_board.get('board_title')} "
             f"({matched_board.get('board_id')}), "
             f"lanes={item.get('lanes')}, columns={item.get('columns')}"
         )
 
-    result = onec.update_service_settings(updated_settings)
-    print("Настройки сервисов обновлены:", result)
+    result = onec.update_project_settings(updated_settings)
+    print("Настройки проектов обновлены:", result)
 
 
 def dump_kaiten_metadata():
@@ -774,20 +855,26 @@ def run_full_sync():
     auto_fill_service_settings()
     settings, onec, kaiten = build_runtime_context()
 
+    print("Проверка новых проектов и обновление настроек...")
+    try:
+        auto_fill_project_settings()
+    except Exception as e:
+        print(f"Предупреждение: Не удалось обновить настройки проектов: {e}")
+
     state = SyncState(settings.state_file)
-    service_settings = get_active_service_settings(onec)
+    project_settings = get_active_project_settings(onec)
 
     metadata = kaiten.get_metadata_catalog()
-    enrich_service_settings_with_metadata(service_settings, metadata)
+    enrich_project_settings_with_metadata(project_settings, metadata)
 
-    for item in service_settings:
+    for item in project_settings:
         print(
-            f"Активный сервис: {item.get('service_name')} "
+            f"Активный проект: {item.get('project_name')} "
             f"board_id={item.get('board_id')} lanes={item.get('lanes')}"
         )
 
-    export_1c_to_kaiten(onec, kaiten, settings, service_settings)
-    import_kaiten_to_1c(onec, kaiten, settings, service_settings)
+    export_1c_to_kaiten(onec, kaiten, settings, project_settings)
+    import_kaiten_to_1c(onec, kaiten, settings, project_settings)
 
     state.save_last_sync(datetime.now(timezone.utc).isoformat())
     print("Полная синхронизация завершена")

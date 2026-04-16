@@ -63,6 +63,12 @@ class KaitenClient:
     def patch(self, path: str, json_data: dict):
         return self._request("PATCH", path, json_data=json_data)
 
+    def delete(self, path: str):
+        return self._request("DELETE", path)
+
+    def delete_card(self, card_id: int):
+        return self.delete(f"/cards/{card_id}")
+
     def get_cards(self, board_id: int | None = None):
         if board_id:
             return self.get("/cards", params={"board_id": board_id})
@@ -85,6 +91,9 @@ class KaitenClient:
 
     def get_custom_properties(self):
         return self.get("/company/custom-properties", params={"limit": 500, "offset": 0})
+
+    def get_users(self):
+        return self.get("/users")
 
     def get_metadata_catalog(self):
         spaces = self.get_spaces() or []

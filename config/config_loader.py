@@ -3,7 +3,6 @@ import shutil
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = ROOT_DIR / "config" / "local_config.json"
 EXAMPLE_CONFIG_PATH = ROOT_DIR / "config" / "local_config.example.json"
