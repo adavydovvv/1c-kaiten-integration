@@ -852,7 +852,7 @@ def dump_kaiten_metadata():
 
 
 def run_full_sync():
-    auto_fill_service_settings()
+    auto_fill_project_settings()
     settings, onec, kaiten = build_runtime_context()
 
     print("Проверка новых проектов и обновление настроек...")

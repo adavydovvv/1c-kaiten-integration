@@ -4,20 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6939f322-e996-4520-9491-b987f7ea2948" name="Changes" comment="fix install service">
-      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.env.example" beforeDir="false" />
+    <list default="true" id="6939f322-e996-4520-9491-b987f7ea2948" name="Changes" comment="final 1604">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/clients/kaiten_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/clients/kaiten_client.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/clients/onec_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/clients/onec_client.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/config_loader.py" beforeDir="false" afterPath="$PROJECT_DIR$/config/config_loader.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/settings.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/install.bat" beforeDir="false" afterPath="$PROJECT_DIR$/install.bat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/install_service.bat" beforeDir="false" afterPath="$PROJECT_DIR$/install_service.bat" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/sync_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/sync_service.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/setup_wizard.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup_wizard.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/state/last_sync.json" beforeDir="false" afterPath="$PROJECT_DIR$/state/last_sync.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uninstall_service.bat" beforeDir="false" afterPath="$PROJECT_DIR$/uninstall_service.bat" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -34,6 +24,7 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="SET_USER_NAME_GLOBALLY" value="false" />
+    <option name="UPDATE_TYPE" value="REBASE" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
   &quot;lastFilter&quot;: {
@@ -91,7 +82,8 @@
       <workItem from="1774354443508" duration="15216000" />
       <workItem from="1774424965853" duration="17792000" />
       <workItem from="1774520314385" duration="4413000" />
-      <workItem from="1776330943261" duration="19431000" />
+      <workItem from="1776330943261" duration="19664000" />
+      <workItem from="1777550371874" duration="739000" />
     </task>
     <task id="LOCAL-00001" summary="first commit">
       <option name="closed" value="true" />
@@ -149,7 +141,15 @@
       <option name="project" value="LOCAL" />
       <updated>1774522041046</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="final 1604">
+      <option name="closed" value="true" />
+      <created>1776354767433</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1776354767433</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -163,6 +163,7 @@
     <MESSAGE value="from 25.03" />
     <MESSAGE value="final" />
     <MESSAGE value="fix install service" />
-    <option name="LAST_COMMIT_MESSAGE" value="fix install service" />
+    <MESSAGE value="final 1604" />
+    <option name="LAST_COMMIT_MESSAGE" value="final 1604" />
   </component>
 </project>
